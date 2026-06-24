@@ -102,15 +102,11 @@ async def send_get_request(
                 error_detail = json.dumps(json_resp)
             # Check if status is retryable
             if resp.status in RETRYABLE_STATUS_CODES:
-                last_error = SvivaAirError(
-                    resp.status, f"API returned status {resp.status}: {error_detail}"
-                )
+                last_error = SvivaAirError(resp.status, f"API returned status {resp.status}: {error_detail}")
                 continue  # Try next URL if available
             else:
                 # Non-retryable error, raise immediately
-                raise SvivaAirError(
-                    resp.status, f"API returned status {resp.status}: {error_detail}"
-                )
+                raise SvivaAirError(resp.status, f"API returned status {resp.status}: {error_detail}")
 
         return json_resp
 
@@ -180,15 +176,11 @@ async def send_post_request(
                 error_detail = json.dumps(json_resp)
             # Check if status is retryable
             if resp.status in RETRYABLE_STATUS_CODES:
-                last_error = SvivaAirError(
-                    resp.status, f"API returned status {resp.status}: {error_detail}"
-                )
+                last_error = SvivaAirError(resp.status, f"API returned status {resp.status}: {error_detail}")
                 continue  # Try next URL if available
             else:
                 # Non-retryable error, raise immediately
-                raise SvivaAirError(
-                    resp.status, f"API returned status {resp.status}: {error_detail}"
-                )
+                raise SvivaAirError(resp.status, f"API returned status {resp.status}: {error_detail}")
 
         return json_resp
 
@@ -242,9 +234,7 @@ async def send_text_get_request(
         if resp.status != http.HTTPStatus.OK:
             # Check if status is retryable
             if resp.status in RETRYABLE_STATUS_CODES:
-                last_error = SvivaAirError(
-                    resp.status, f"API returned status {resp.status}"
-                )
+                last_error = SvivaAirError(resp.status, f"API returned status {resp.status}")
                 continue  # Try next URL if available
             else:
                 # Non-retryable error, raise immediately
@@ -355,10 +345,7 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     # Haversine formula
     dlat = lat2 - lat1
     dlon = lon2 - lon1
-    a = (
-        math.sin(dlat / 2) ** 2
-        + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-    )
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
     c = 2 * math.asin(math.sqrt(a))
 
     # Radius of Earth in kilometers

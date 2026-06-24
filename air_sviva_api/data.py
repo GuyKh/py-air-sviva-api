@@ -116,9 +116,7 @@ async def get_server_time(session: ClientSession) -> str:
         "accept-language": "en,he;q=0.9",
         "user-agent": HEADERS["user-agent"],
     }
-    return await commons.send_text_get_request(
-        session=session, url=GET_SERVER_TIME_URL, headers=server_headers
-    )
+    return await commons.send_text_get_request(session=session, url=GET_SERVER_TIME_URL, headers=server_headers)
 
 
 def _build_url(endpoint: str) -> str:
@@ -128,9 +126,7 @@ def _build_url(endpoint: str) -> str:
 
 async def get_regions(session: ClientSession, headers: dict[str, str]) -> list[Region]:
     """Get all monitoring regions with their stations and monitors."""
-    response = await commons.send_get_request(
-        session=session, url=_build_url(GET_REGIONS_URL), headers=headers
-    )
+    response = await commons.send_get_request(session=session, url=_build_url(GET_REGIONS_URL), headers=headers)
     return [Region.from_dict(r) for r in response]
 
 
@@ -322,9 +318,7 @@ async def get_station_images(
     url = GET_STATION_IMAGES_URL
     data = {"stationId": str(station_id)}
     try:
-        response = await commons.send_post_request(
-            session=session, url=url, headers=headers, data=data
-        )
+        response = await commons.send_post_request(session=session, url=url, headers=headers, data=data)
         # If response is a list, wrap it in "images" key
         if isinstance(response, list):
             return StationImagesResponse.from_dict({"images": response})
@@ -339,50 +333,32 @@ async def get_station_images(
         return StationImagesResponse(images=[])
 
 
-async def get_pollutants(
-    session: ClientSession, headers: dict[str, str]
-) -> list[Pollutant]:
+async def get_pollutants(session: ClientSession, headers: dict[str, str]) -> list[Pollutant]:
     """Get list of all tracked pollutants."""
-    response = await commons.send_get_request(
-        session=session, url=_build_url(GET_POLLUTANTS_URL), headers=headers
-    )
+    response = await commons.send_get_request(session=session, url=_build_url(GET_POLLUTANTS_URL), headers=headers)
     return [Pollutant.from_dict(p) for p in response]
 
 
 async def get_units(session: ClientSession, headers: dict[str, str]) -> list[Unit]:
     """Get list of measurement units."""
-    response = await commons.send_get_request(
-        session=session, url=_build_url(GET_DATA_UNITS_URL), headers=headers
-    )
+    response = await commons.send_get_request(session=session, url=_build_url(GET_DATA_UNITS_URL), headers=headers)
     return [Unit.from_dict(u) for u in response]
 
 
-async def get_data_statuses(
-    session: ClientSession, headers: dict[str, str]
-) -> list[DataStatus]:
+async def get_data_statuses(session: ClientSession, headers: dict[str, str]) -> list[DataStatus]:
     """Get list of data status codes."""
-    response = await commons.send_get_request(
-        session=session, url=_build_url(GET_DATA_STATUS_URL), headers=headers
-    )
+    response = await commons.send_get_request(session=session, url=_build_url(GET_DATA_STATUS_URL), headers=headers)
     return [DataStatus.from_dict(s) for s in response]
 
 
-async def get_manual_stations(
-    session: ClientSession, headers: dict[str, str]
-) -> list[dict[str, Any]]:
+async def get_manual_stations(session: ClientSession, headers: dict[str, str]) -> list[dict[str, Any]]:
     """Get list of manual monitoring stations."""
-    return await commons.send_get_request(
-        session=session, url=_build_url(GET_MANUAL_STATIONS_URL), headers=headers
-    )
+    return await commons.send_get_request(session=session, url=_build_url(GET_MANUAL_STATIONS_URL), headers=headers)
 
 
-async def get_manual_pollutants(
-    session: ClientSession, headers: dict[str, str]
-) -> list[dict[str, Any]]:
+async def get_manual_pollutants(session: ClientSession, headers: dict[str, str]) -> list[dict[str, Any]]:
     """Get list of manual measurement pollutants."""
-    return await commons.send_get_request(
-        session=session, url=_build_url(GET_MANUAL_POLLUTANTS_URL), headers=headers
-    )
+    return await commons.send_get_request(session=session, url=_build_url(GET_MANUAL_POLLUTANTS_URL), headers=headers)
 
 
 async def get_index_pollutants(
@@ -396,30 +372,20 @@ async def get_index_pollutants(
     return await commons.send_get_request(session=session, url=url, headers=headers)
 
 
-async def get_thresholds(
-    session: ClientSession, headers: dict[str, str]
-) -> list[dict[str, Any]]:
+async def get_thresholds(session: ClientSession, headers: dict[str, str]) -> list[dict[str, Any]]:
     """Get all pollutant threshold values."""
-    return await commons.send_get_request(
-        session=session, url=_build_url(GET_THRESHOLDS_URL), headers=headers
-    )
+    return await commons.send_get_request(session=session, url=_build_url(GET_THRESHOLDS_URL), headers=headers)
 
 
-async def get_advisories(
-    session: ClientSession, headers: dict[str, str]
-) -> list[dict[str, Any]]:
+async def get_advisories(session: ClientSession, headers: dict[str, str]) -> list[dict[str, Any]]:
     """Get air quality advisories."""
     url = _build_url(GET_ADVISORIES_URL) + "?siteTable=sviva"
     return await commons.send_get_request(session=session, url=url, headers=headers)
 
 
-async def get_config_index(
-    session: ClientSession, headers: dict[str, str]
-) -> dict[str, Any]:
+async def get_config_index(session: ClientSession, headers: dict[str, str]) -> dict[str, Any]:
     """Get system configuration."""
-    return await commons.send_get_request(
-        session=session, url=_build_url(GET_CONFIG_INDEX_URL), headers=headers
-    )
+    return await commons.send_get_request(session=session, url=_build_url(GET_CONFIG_INDEX_URL), headers=headers)
 
 
 async def get_index_configuration(
@@ -433,13 +399,9 @@ async def get_index_configuration(
     return await commons.send_get_request(session=session, url=url, headers=headers)
 
 
-async def get_station_terminology(
-    session: ClientSession, headers: dict[str, str]
-) -> list[dict[str, Any]]:
+async def get_station_terminology(session: ClientSession, headers: dict[str, str]) -> list[dict[str, Any]]:
     """Get station terminology/classifications."""
-    return await commons.send_get_request(
-        session=session, url=_build_url(GET_STATION_TERMINOLOGY_URL), headers=headers
-    )
+    return await commons.send_get_request(session=session, url=_build_url(GET_STATION_TERMINOLOGY_URL), headers=headers)
 
 
 async def get_layer_mng(
@@ -474,31 +436,19 @@ async def get_layer_filtered_stations(
     return await commons.send_get_request(session=session, url=url, headers=headers)
 
 
-async def get_widget_config(
-    session: ClientSession, headers: dict[str, str]
-) -> dict[str, Any]:
+async def get_widget_config(session: ClientSession, headers: dict[str, str]) -> dict[str, Any]:
     """Get widget configuration."""
-    return await commons.send_get_request(
-        session=session, url=_build_url(GET_WIDGET_URL), headers=headers
-    )
+    return await commons.send_get_request(session=session, url=_build_url(GET_WIDGET_URL), headers=headers)
 
 
-async def get_guest_map_view(
-    session: ClientSession, headers: dict[str, str]
-) -> dict[str, Any]:
+async def get_guest_map_view(session: ClientSession, headers: dict[str, str]) -> dict[str, Any]:
     """Get guest map view configuration."""
-    return await commons.send_get_request(
-        session=session, url=_build_url(GET_GUEST_MAP_VIEW_URL), headers=headers
-    )
+    return await commons.send_get_request(session=session, url=_build_url(GET_GUEST_MAP_VIEW_URL), headers=headers)
 
 
-async def get_interpolation_mng(
-    session: ClientSession, headers: dict[str, str]
-) -> list[dict[str, Any]]:
+async def get_interpolation_mng(session: ClientSession, headers: dict[str, str]) -> list[dict[str, Any]]:
     """Get interpolation management data."""
-    return await commons.send_get_request(
-        session=session, url=_build_url(GET_INTERPOLATION_MNG_URL), headers=headers
-    )
+    return await commons.send_get_request(session=session, url=_build_url(GET_INTERPOLATION_MNG_URL), headers=headers)
 
 
 async def get_vineyard_location(
@@ -511,11 +461,7 @@ async def get_vineyard_location(
     return await commons.send_get_request(session=session, url=url, headers=headers)
 
 
-async def get_lut_mng(
-    session: ClientSession, headers: dict[str, str]
-) -> list[LookUpTable]:
+async def get_lut_mng(session: ClientSession, headers: dict[str, str]) -> list[LookUpTable]:
     """Get all lookup tables (LUT) management data."""
-    response = await commons.send_get_request(
-        session=session, url=_build_url(GET_LUT_MNG_URL), headers=headers
-    )
+    response = await commons.send_get_request(session=session, url=_build_url(GET_LUT_MNG_URL), headers=headers)
     return parse_lut_management_response(response)
