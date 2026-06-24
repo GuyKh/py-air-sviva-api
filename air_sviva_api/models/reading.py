@@ -34,9 +34,7 @@ class RegionData(DataClassDictMixin):
 @dataclass
 class RegionStationData(DataClassDictMixin):
     station_id: int = field(metadata={"alias": "stationId"})
-    region_data: Optional[RegionData] = field(
-        default=None, metadata={"alias": "regionData"}
-    )
+    region_data: Optional[RegionData] = field(default=None, metadata={"alias": "regionData"})
 
     class Config(BaseConfig):
         serialize_by_alias = True
@@ -51,9 +49,7 @@ class IndexDetail(DataClassDictMixin):
     color: Optional[str] = None
     description: Optional[str] = None
     pollutant_id: Optional[int] = field(default=None, metadata={"alias": "pollutantId"})
-    pollutant_time_base: Optional[int] = field(
-        default=None, metadata={"alias": "PollutantTimeBase"}
-    )
+    pollutant_time_base: Optional[int] = field(default=None, metadata={"alias": "PollutantTimeBase"})
 
     class Config(BaseConfig):
         serialize_by_alias = True
@@ -72,9 +68,7 @@ class StationIndexData(DataClassDictMixin):
     pollutant: Optional[str] = None
     pollutant_id: Optional[int] = field(default=None, metadata={"alias": "pollutantId"})
     indexes: Optional[list[IndexDetail]] = None
-    pollutant_time_base: Optional[int] = field(
-        default=None, metadata={"alias": "PollutantTimeBase"}
-    )
+    pollutant_time_base: Optional[int] = field(default=None, metadata={"alias": "PollutantTimeBase"})
 
     class Config(BaseConfig):
         serialize_by_alias = True

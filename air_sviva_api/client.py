@@ -68,6 +68,12 @@ def is_jwt_expired(token: str, buffer_seconds: int = 60) -> bool:
         return False
 
 
+# Token refresh interval in seconds.
+# The X-Access-Token cookie expires after 1 hour, so refresh at 55 minutes
+# to ensure the cookie is always valid during API calls.
+TOKEN_REFRESH_INTERVAL: int = 3300
+
+
 class SvivaAirClient:
     """Async client for the Israeli Ministry of Environmental Protection air quality API.
 
@@ -102,6 +108,7 @@ class SvivaAirClient:
         self._session = session
         self._request_verification_token: Optional[str] = request_verification_token
         self._auth_token: Optional[str] = None
+        self._last_token_refresh: Optional[float] = None
 
     def _get_base_headers(self) -> dict[str, str]:
         """Get headers with the request verification token set."""
@@ -126,6 +133,7 @@ class SvivaAirClient:
             headers["x-requestverificationtoken"] = self._request_verification_token
 
         self._auth_token = await data.generate_token(self._session, headers)
+        self._last_token_refresh = time.time()
         logger.info("Auth token generated successfully")
         return self._auth_token
 
@@ -149,19 +157,22 @@ class SvivaAirClient:
             raise SvivaAirError(-1, "No auth token available to refresh")
 
         headers = self._get_base_headers()
-        self._auth_token = await data.generate_token(
-            self._session,
-            headers,
-            existing_jwt_token=self._auth_token
-        )
+        self._auth_token = await data.generate_token(self._session, headers, existing_jwt_token=self._auth_token)
+        self._last_token_refresh = time.time()
         logger.info("Auth token refreshed successfully")
         return self._auth_token
 
     async def _ensure_auth_headers(self) -> dict[str, str]:
         """Get headers with auth token configured, refreshing token if expired."""
-        # Check if token exists and is not expired
-        if self._auth_token and is_jwt_expired(self._auth_token):
-            logger.info("Auth token expired, refreshing...")
+        # Check if token needs refresh based on elapsed time.
+        # The X-Access-Token cookie expires after ~1 hour, so we refresh
+        # every 55 minutes (TOKEN_REFRESH_INTERVAL) to keep the cookie valid.
+        if (
+            self._auth_token
+            and self._last_token_refresh is not None
+            and time.time() - self._last_token_refresh > TOKEN_REFRESH_INTERVAL
+        ):
+            logger.info("Auth token approaching expiry, refreshing...")
             await self.refresh_token()
 
         headers = self._get_base_headers()
@@ -201,9 +212,7 @@ class SvivaAirClient:
         Returns:
             StationIndexResponse with per-station index data.
         """
-        return await data.get_stations_latest_index(
-            self._session, await self._ensure_auth_headers(), hours_back
-        )
+        return await data.get_stations_latest_index(self._session, await self._ensure_auth_headers(), hours_back)
 
     async def get_station_average(
         self,
@@ -301,9 +310,7 @@ class SvivaAirClient:
         Returns:
             StationImagesResponse containing station images.
         """
-        return await data.get_station_images(
-            self._session, await self._ensure_auth_headers(), station_id
-        )
+        return await data.get_station_images(self._session, await self._ensure_auth_headers(), station_id)
 
     # --- Reference Data ---
 
@@ -321,15 +328,11 @@ class SvivaAirClient:
 
     async def get_manual_stations(self) -> list[dict[str, Any]]:
         """Get list of manual monitoring stations."""
-        return await data.get_manual_stations(
-            self._session, await self._ensure_auth_headers()
-        )
+        return await data.get_manual_stations(self._session, await self._ensure_auth_headers())
 
     async def get_manual_pollutants(self) -> list[dict[str, Any]]:
         """Get list of manual measurement pollutants."""
-        return await data.get_manual_pollutants(
-            self._session, await self._ensure_auth_headers()
-        )
+        return await data.get_manual_pollutants(self._session, await self._ensure_auth_headers())
 
     async def get_index_pollutants(
         self,
@@ -340,9 +343,7 @@ class SvivaAirClient:
         Args:
             index_type: Index type. Default 3.
         """
-        return await data.get_index_pollutants(
-            self._session, await self._ensure_auth_headers(), index_type
-        )
+        return await data.get_index_pollutants(self._session, await self._ensure_auth_headers(), index_type)
 
     async def get_thresholds(self) -> list[dict[str, Any]]:
         """Get all pollutant threshold values."""
@@ -363,15 +364,11 @@ class SvivaAirClient:
         index_type: int = 1,
     ) -> dict[str, Any]:
         """Get index calculation configuration."""
-        return await data.get_index_configuration(
-            self._session, await self._ensure_auth_headers(), index_type
-        )
+        return await data.get_index_configuration(self._session, await self._ensure_auth_headers(), index_type)
 
     async def get_station_terminology(self) -> list[dict[str, Any]]:
         """Get station terminology/classifications."""
-        return await data.get_station_terminology(
-            self._session, await self._ensure_auth_headers()
-        )
+        return await data.get_station_terminology(self._session, await self._ensure_auth_headers())
 
     async def get_lut_mng(self) -> list[LookUpTable]:
         """Get all lookup tables (LUT) management data."""
@@ -385,27 +382,21 @@ class SvivaAirClient:
         access_level: int = 1,
     ) -> list[dict[str, Any]]:
         """Get map layer management data."""
-        return await data.get_layer_mng(
-            self._session, await self._ensure_auth_headers(), platform, access_level
-        )
+        return await data.get_layer_mng(self._session, await self._ensure_auth_headers(), platform, access_level)
 
     async def get_layer_queries(
         self,
         layer_id: int,
     ) -> list[dict[str, Any]]:
         """Get feature queries for a map layer."""
-        return await data.get_layer_queries(
-            self._session, await self._ensure_auth_headers(), layer_id
-        )
+        return await data.get_layer_queries(self._session, await self._ensure_auth_headers(), layer_id)
 
     async def get_layer_filtered_stations(
         self,
         layer_id: int,
     ) -> list[dict[str, Any]]:
         """Get filtered stations for a map layer."""
-        return await data.get_layer_filtered_stations(
-            self._session, await self._ensure_auth_headers(), layer_id
-        )
+        return await data.get_layer_filtered_stations(self._session, await self._ensure_auth_headers(), layer_id)
 
     # --- Other ---
 
@@ -419,18 +410,14 @@ class SvivaAirClient:
 
     async def get_interpolation_mng(self) -> list[dict[str, Any]]:
         """Get interpolation management data."""
-        return await data.get_interpolation_mng(
-            self._session, await self._ensure_auth_headers()
-        )
+        return await data.get_interpolation_mng(self._session, await self._ensure_auth_headers())
 
     async def get_vineyard_location(
         self,
         location_id: int,
     ) -> dict[str, Any]:
         """Get vineyard/agricultural weather data for a location."""
-        return await data.get_vineyard_location(
-            self._session, await self._ensure_auth_headers(), location_id
-        )
+        return await data.get_vineyard_location(self._session, await self._ensure_auth_headers(), location_id)
 
     async def find_nearest_stations(
         self,
@@ -464,11 +451,7 @@ class SvivaAirClient:
         # Filter stations that have location data and calculate distances
         stations_with_distance = []
         for station in all_stations:
-            if (
-                station.location
-                and station.location.latitude is not None
-                and station.location.longitude is not None
-            ):
+            if station.location and station.location.latitude is not None and station.location.longitude is not None:
                 distance = commons.haversine_distance(
                     latitude,
                     longitude,

@@ -13,9 +13,7 @@ class LutDataItem(DataClassDictMixin):
 
     id: int = field(metadata={"alias": "ID"})
     name: str = field(metadata={"alias": "Name"})
-    value: Optional[Union[float, int]] = field(
-        default=None, metadata={"alias": "Value"}
-    )
+    value: Optional[Union[float, int]] = field(default=None, metadata={"alias": "Value"})
 
     class Config(BaseConfig):
         serialize_by_alias = True
