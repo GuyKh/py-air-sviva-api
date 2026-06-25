@@ -16,7 +16,7 @@ requires-python = ">=3.10"
 dependencies = [
     "aiohttp>=3.9,<4",
     "mashumaro>=3.13,<4",
-    "orjson>=3.11.9",
+    "orjson>=3.11.8",
 ]
 
 [project.optional-dependencies]
