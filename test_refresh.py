@@ -23,5 +23,6 @@ async def test_refresh():
         # They should be different (or at least we called the refresh endpoint)
         print("Token refresh test completed successfully!")
 
+
 if __name__ == "__main__":
     asyncio.run(test_refresh())

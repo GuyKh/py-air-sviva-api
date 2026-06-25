@@ -160,7 +160,7 @@ def sample_average() -> dict[str, Any]:
     }
 
 
-@ pytest.fixture
+@pytest.fixture
 def sample_station_image() -> list[dict[str, Any]]:
     return [
         {
