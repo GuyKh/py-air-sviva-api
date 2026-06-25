@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from aiohttp import ClientSession
 
+from air_sviva_api.aqi import AirQualityResult
 from air_sviva_api.client import SvivaAirClient
 from air_sviva_api.const import GENERATE_TOKEN_URL, GET_API_TOKEN_URL
 from air_sviva_api.models.pollutant import Pollutant
@@ -45,9 +46,7 @@ class TestClientInitialization:
 class TestClientGenerateToken:
     @patch("air_sviva_api.commons.send_post_request")
     @patch("air_sviva_api.commons.send_text_post_request")
-    async def test_generate_token_success(
-        self, mock_send_text_post, mock_send_post, client
-    ):
+    async def test_generate_token_success(self, mock_send_text_post, mock_send_post, client):
         mock_send_post.return_value = '"42"'  # API token with quotes
         mock_send_text_post.return_value = "99"  # auth token
         token = await client.generate_token()
@@ -56,9 +55,7 @@ class TestClientGenerateToken:
 
     @patch("air_sviva_api.commons.send_post_request")
     @patch("air_sviva_api.commons.send_text_post_request")
-    async def test_generate_token_auto_verif_token(
-        self, mock_send_text_post, mock_send_post, mock_session
-    ):
+    async def test_generate_token_auto_verif_token(self, mock_send_text_post, mock_send_post, mock_session):
         mock_send_post.return_value = '"99"'  # API token with quotes
         mock_send_text_post.return_value = "123"  # auth token
         client = SvivaAirClient(mock_session)
@@ -68,9 +65,7 @@ class TestClientGenerateToken:
 
     @patch("air_sviva_api.commons.send_post_request")
     @patch("air_sviva_api.commons.send_text_post_request")
-    async def test_refresh_token_success(
-        self, mock_send_text_post, mock_send_post, client
-    ):
+    async def test_refresh_token_success(self, mock_send_text_post, mock_send_post, client):
         # Set up an initial token
         client._auth_token = "current_token_123"
         client._request_verification_token = "test-verif-token"
@@ -131,9 +126,7 @@ class TestClientRegions:
 
 class TestClientStations:
     @patch("air_sviva_api.commons.send_get_request")
-    async def test_get_stations_latest_index(
-        self, mock_get, client, sample_station_index
-    ):
+    async def test_get_stations_latest_index(self, mock_get, client, sample_station_index):
         mock_get.return_value = sample_station_index
         result = await client.get_stations_latest_index()
         assert isinstance(result, StationIndexResponse)
@@ -163,6 +156,35 @@ class TestClientStations:
         assert result.images[0].id == 217
         assert result.images[0].station_id == 124
         assert result.images[0].name == "קרית גת.jpg"
+
+    @patch("air_sviva_api.commons.send_get_request")
+    async def test_get_station_aqi(self, mock_get, client):
+        sample_data = {
+            "data": [
+                {
+                    "datetime": f"2024-01-15T{h:02d}:00:00",
+                    "channels": [
+                        {"id": 1, "name": "PM2.5", "value": 10.0, "status": 0, "valid": True},
+                        {"id": 5, "name": "O3", "value": 30.0, "valid": True},
+                        {"id": 2, "name": "NO2", "value": 40.0, "valid": True},
+                    ],
+                }
+                for h in range(24)
+            ],
+        }
+        mock_get.return_value = sample_data
+        result = await client.get_station_aqi(station_id=82)
+        assert isinstance(result, AirQualityResult)
+        assert result.aqi_rounded is not None
+        assert result.classification is not None
+
+    @patch("air_sviva_api.commons.send_get_request")
+    async def test_get_station_aqi_no_data(self, mock_get, client):
+        mock_get.return_value = {"data": []}
+        from air_sviva_api.models.exceptions import SvivaAirError
+
+        with pytest.raises(SvivaAirError, match="No average data"):
+            await client.get_station_aqi(station_id=82)
 
 
 class TestClientReferenceData:
@@ -194,9 +216,7 @@ class TestClientNearestStations:
 
         # Test finding nearest station to Haifa coordinates (should be the Haifa station itself)
         # Haifa coordinates from sample: latitude: 32.794, longitude: 34.989
-        result = await client.find_nearest_stations(
-            latitude=32.794, longitude=34.989, limit=1
-        )
+        result = await client.find_nearest_stations(latitude=32.794, longitude=34.989, limit=1)
 
         # Should return exactly one station
         assert len(result) == 1
@@ -211,16 +231,12 @@ class TestClientNearestStations:
         assert distance < 0.1  # Less than 100 meters
 
     @patch("air_sviva_api.commons.send_get_request")
-    async def test_find_nearest_stations_multiple(
-        self, mock_get, client, sample_region
-    ):
+    async def test_find_nearest_stations_multiple(self, mock_get, client, sample_region):
         # Mock the low-level HTTP request to return raw region data
         mock_get.return_value = sample_region
 
         # Test finding 2 nearest stations (though we only have 1 in sample)
-        result = await client.find_nearest_stations(
-            latitude=32.794, longitude=34.989, limit=2
-        )
+        result = await client.find_nearest_stations(latitude=32.794, longitude=34.989, limit=2)
 
         # Should return exactly one station (since sample only has 1 station with location)
         assert len(result) == 1
@@ -263,9 +279,7 @@ class TestClientNearestStations:
         mock_get.return_value = sample_region_no_location
 
         # Should return empty list since no stations have location data
-        result = await client.find_nearest_stations(
-            latitude=32.0, longitude=35.0, limit=5
-        )
+        result = await client.find_nearest_stations(latitude=32.0, longitude=35.0, limit=5)
 
         assert len(result) == 0
 
@@ -314,9 +328,7 @@ class TestClientNearestStations:
         mock_get.return_value = sample_region_two_stations
 
         # Test from Haifa coordinates - Haifa should be first, Tel Aviv second
-        result = await client.find_nearest_stations(
-            latitude=32.794, longitude=34.989, limit=2
-        )
+        result = await client.find_nearest_stations(latitude=32.794, longitude=34.989, limit=2)
 
         assert len(result) == 2
 

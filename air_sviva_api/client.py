@@ -4,12 +4,14 @@ import base64
 import json
 import logging
 import time
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, List, Optional, Tuple
 
 from aiohttp import ClientSession
 
+from air_sviva_api import aqi as aqi_mod
 from air_sviva_api import commons, data
+from air_sviva_api.aqi import AirQualityResult, calc_station_air_quality
 from air_sviva_api.const import HEADERS
 from air_sviva_api.models.average import AverageResponse
 from air_sviva_api.models.exceptions import SvivaAirError
@@ -218,6 +220,7 @@ class SvivaAirClient:
         self,
         station_id: int,
         channel_id: Optional[int] = None,
+        hours_back: Optional[int] = None,
         from_date: Optional[date] = None,
         to_date: Optional[date] = None,
         timebase: int = 5,
@@ -229,7 +232,8 @@ class SvivaAirClient:
         Args:
             station_id: The station ID.
             channel_id: Optional pollutant channel ID. If omitted, returns all channels.
-            from_date: Start date. Defaults to today.
+            hours_back: Look back this many hours from now (overrides *from_date*).
+            from_date: Start date. Defaults to today when *hours_back* is not set.
             to_date: End date. Defaults to today.
             timebase: Time base in minutes for data aggregation (default 5 min).
             from_timebase: From timebase in minutes (default 5 min).
@@ -239,6 +243,8 @@ class SvivaAirClient:
             AverageResponse containing time-series data points.
         """
         today = date.today()
+        if hours_back is not None:
+            from_date = today - timedelta(hours=hours_back)
         from_str = (from_date or today).strftime("%Y-%m-%dT00:00:00")
         to_str = (to_date or today).strftime("%Y-%m-%dT23:59:59")
         return await data.get_station_average(
@@ -252,6 +258,65 @@ class SvivaAirClient:
             5,  # from_timebase
             5,  # to_timebase
         )
+
+    async def get_station_aqi(
+        self,
+        station_id: int,
+    ) -> AirQualityResult:
+        """Calculate the Israeli AQI for a station using its average pollutant readings.
+
+        Fetches hourly average data for the last 25 hours and aggregates each
+        pollutant according to its methodology-mandated averaging period:
+
+        - **24 hr** average — PM2.5, PM10
+        - **8 hr** average — O3
+        - Latest hourly value — NO2, SO2, CO, NOx
+
+        Args:
+            station_id: The station ID.
+
+        Returns:
+            :class:`~air_sviva_api.aqi.AirQualityResult` with the computed
+            AQI, classification, and per-pollutant breakdown.
+
+        Raises:
+            SvivaAirError: If the station has no valid average data.
+        """
+        avg = await self.get_station_average(
+            station_id,
+            hours_back=25,
+            timebase=60,
+        )
+
+        if not avg.data:
+            raise SvivaAirError(-1, f"No average data for station {station_id}")
+
+        # Collect all valid hourly readings per pollutant
+        hourly: dict[str, list[float]] = {}
+        for dp in avg.data:
+            if not dp.channels:
+                continue
+            for ch in dp.channels:
+                if ch.valid and ch.name:
+                    hourly.setdefault(ch.name, []).append(ch.value)
+
+        if not hourly:
+            raise SvivaAirError(-1, f"No valid pollutant readings for station {station_id}")
+
+        readings: dict[str | aqi_mod.Pollutant, float] = {}
+        for name_orig, values in hourly.items():
+            canonical = aqi_mod.Pollutant.from_api(name_orig)
+            if canonical is None:
+                continue
+            if canonical in (aqi_mod.Pollutant.PM25, aqi_mod.Pollutant.PM10):
+                readings[canonical] = sum(values) / len(values)
+            elif canonical == aqi_mod.Pollutant.O3:
+                window = values[-8:]
+                readings[canonical] = sum(window) / len(window)
+            else:
+                readings[canonical] = values[-1]
+
+        return calc_station_air_quality(readings)
 
     async def get_station_index_fast(
         self,

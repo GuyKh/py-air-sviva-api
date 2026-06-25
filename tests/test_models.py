@@ -50,6 +50,7 @@ class TestRegionModel:
         assert station.monitors[0].name == "O3"
         assert station.monitors[1].channel_id == 1
         assert station.monitors[1].name == "SO2"
+
     def test_station_defaults(self):
         station = Station.from_dict({"stationId": 99, "name": "Test"})
         assert station.active is False
@@ -153,18 +154,20 @@ class TestLutModel:
         assert item.value is None
 
     def test_lookup_table_from_dict(self):
-        table = LookUpTable.from_dict({
-            "ID": 1,
-            "Name": "LAYER_TYPE",
-            "TableName": "LUT_LAYER_TYPE",
-            "Edit": 0,
-            "Description": 0,
-            "Value": 0,
-            "Data": [
-                {"ID": 0, "Name": "Image"},
-                {"ID": 1, "Name": "Feature"},
-            ],
-        })
+        table = LookUpTable.from_dict(
+            {
+                "ID": 1,
+                "Name": "LAYER_TYPE",
+                "TableName": "LUT_LAYER_TYPE",
+                "Edit": 0,
+                "Description": 0,
+                "Value": 0,
+                "Data": [
+                    {"ID": 0, "Name": "Image"},
+                    {"ID": 1, "Name": "Feature"},
+                ],
+            }
+        )
         assert table.id == 1
         assert table.name == "LAYER_TYPE"
         assert table.table_name == "LUT_LAYER_TYPE"

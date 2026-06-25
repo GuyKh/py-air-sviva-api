@@ -58,23 +58,25 @@ async def main() -> None:
             if station_index.get("data"):
                 print("   Current pollutants monitored:")
                 for entry in station_index["data"]:
-                    print(f"     {entry.get('pollutant', 'N/A')}: index={entry.get('index', 'N/A')}, "
-                          f"value={entry.get('value', 'N/A')} {entry.get('color', '')} "
-                          f"({entry.get('description', 'N/A')})")
+                    print(
+                        f"     {entry.get('pollutant', 'N/A')}: index={entry.get('index', 'N/A')}, "
+                        f"value={entry.get('value', 'N/A')} {entry.get('color', '')} "
+                        f"({entry.get('description', 'N/A')})"
+                    )
 
             # Also get regions latest data to see current readings
             if selected_station.region_id is not None:
-                region_data = await client.get_regions_latest_data(
-                    [selected_station.region_id], hours_back=4
-                )
+                region_data = await client.get_regions_latest_data([selected_station.region_id], hours_back=4)
             else:
                 region_data = []
             for rd in region_data:
                 if rd.station_id == selected_station.station_id and rd.region_data and rd.region_data.channels:
                     print(f"   Current readings for {selected_station.name}:")
                     for channel in rd.region_data.channels:
-                        print(f"     {channel.name}: {channel.value} {channel.units} "
-                              f"(status: {channel.status}, valid: {channel.valid})")
+                        print(
+                            f"     {channel.name}: {channel.value} {channel.units} "
+                            f"(status: {channel.status}, valid: {channel.valid})"
+                        )
         except Exception as e:
             print(f"   Error getting current conditions: {e}")
 
@@ -120,9 +122,7 @@ async def main() -> None:
         # 6c. Get fast index for the station (already done above, but showing different time range)
         try:
             await client.get_station_index_fast(
-                selected_station.station_id,
-                from_date=date.today() - timedelta(days=1),
-                to_date=date.today()
+                selected_station.station_id, from_date=date.today() - timedelta(days=1), to_date=date.today()
             )
             print("   Fast index (last 2 days): retrieved")
         except Exception as e:
