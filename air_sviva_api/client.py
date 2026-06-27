@@ -297,7 +297,7 @@ class SvivaAirClient:
             if not dp.channels:
                 continue
             for ch in dp.channels:
-                if ch.valid and ch.name:
+                if ch.valid and ch.name and ch.value is not None:
                     hourly.setdefault(ch.name, []).append(ch.value)
 
         if not hourly:

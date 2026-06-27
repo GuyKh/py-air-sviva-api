@@ -12,7 +12,7 @@ class ChannelReading(DataClassDictMixin):
     id: int
     name: str
     alias: Optional[str] = None
-    value: float = 0.0
+    value: Optional[float] = None
     status: int = 0
     valid: bool = False
     description: Optional[str] = None

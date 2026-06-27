@@ -46,6 +46,7 @@ from air_sviva_api.const import (
     GET_VINEYARD_LOCATION_URL,
     GET_WIDGET_URL,
     HEADERS,
+    INVALID_VALUE,
 )
 from air_sviva_api.models.average import AverageDataPoint, AverageResponse
 from air_sviva_api.models.lut import LookUpTable, parse_lut_management_response
@@ -141,7 +142,13 @@ async def get_regions_latest_data(
     url = _build_url(GET_REGIONS_LATEST_DATA_URL)
     url += f"?unitConversion=true&regionsIds={ids_str}&hoursBack={hours_back}"
     response = await commons.send_get_request(session=session, url=url, headers=headers)
-    return [RegionStationData.from_dict(item) for item in response]
+    result = [RegionStationData.from_dict(item) for item in response]
+    for station in result:
+        if station.region_data and station.region_data.channels:
+            for channel in station.region_data.channels:
+                if channel.value == INVALID_VALUE:
+                    channel.value = None
+    return result
 
 
 async def get_stations_latest_index(
