@@ -37,59 +37,55 @@ class TestSubIndex:
     @pytest.mark.parametrize(
         "conc, expected",
         [
-            (4.6, 88),
-            (10.7, 72),
-            (18.4, 51),
-            (19.1, 49),
+            (4.6, 12),
+            (10.7, 28),
+            (18.4, 49),
+            (19.1, 51),
         ],
     )
     def test_pm25(self, conc, expected):
         sub_idx = calc_sub_index(conc, Pollutant.PM25)
         assert sub_idx is not None
-        aqi = 100 - sub_idx
-        assert round(aqi) == expected
+        assert round(sub_idx) == expected
 
     @pytest.mark.parametrize(
         "conc, expected",
         [
-            (12.3, 91),
-            (26.0, 80),
-            (45.0, 66),
-            (85.1, 35),
+            (12.3, 9),
+            (26.0, 20),
+            (45.0, 34),
+            (85.1, 65),
         ],
     )
     def test_pm10(self, conc, expected):
         sub_idx = calc_sub_index(conc, Pollutant.PM10)
         assert sub_idx is not None
-        aqi = 100 - sub_idx
-        assert round(aqi) == expected
+        assert round(sub_idx) == expected
 
     @pytest.mark.parametrize(
         "conc, expected",
         [
-            (0.0, 100),
-            (49.3, 54),
-            (66.6, 38),
+            (0.0, 0),
+            (49.3, 46),
+            (66.6, 62),
         ],
     )
     def test_no2(self, conc, expected):
         sub_idx = calc_sub_index(conc, Pollutant.NO2)
         assert sub_idx is not None
-        aqi = 100 - sub_idx
-        assert round(aqi) == expected
+        assert round(sub_idx) == expected
 
     @pytest.mark.parametrize(
         "conc, expected",
         [
-            (33.9, 53),
-            (61.1, 13),
+            (33.9, 47),
+            (61.1, 87),
         ],
     )
     def test_o3(self, conc, expected):
         sub_idx = calc_sub_index(conc, Pollutant.O3)
         assert sub_idx is not None
-        aqi = 100 - sub_idx
-        assert round(aqi) == expected
+        assert round(sub_idx) == expected
 
     def test_unknown_pollutant(self):
         assert calc_sub_index(10.0, "BENZENE") is None
@@ -119,9 +115,9 @@ class TestSubIndex:
 class TestStationAirQuality:
     def test_single_pollutant(self):
         result = calc_station_air_quality({Pollutant.PM25: 10.7})
-        assert result.aqi_rounded == 72
+        assert result.aqi_rounded == 28
         assert result.worst_pollutant == Pollutant.PM25
-        assert result.classification == AQIClassification.GOOD
+        assert result.classification == AQIClassification.EXCELLENT
 
     def test_multiple_pollutants_worst_wins(self):
         result = calc_station_air_quality(
@@ -132,7 +128,7 @@ class TestStationAirQuality:
             }
         )
         assert result.worst_pollutant == Pollutant.O3
-        assert result.aqi_rounded == 32
+        assert result.aqi_rounded == 68
 
     def test_no_readings(self):
         result = calc_station_air_quality({})
@@ -148,9 +144,9 @@ class TestStationAirQuality:
     @pytest.mark.parametrize(
         "readings, expected_aqi, expected_class",
         [
-            ({Pollutant.PM25: 10.7}, 72, AQIClassification.GOOD),
-            ({Pollutant.PM25: 19.1, Pollutant.O3: 61.1}, 13, AQIClassification.MEDIUM),
-            ({Pollutant.PM25: 200.0}, -400, AQIClassification.VERY_LOW),
+            ({Pollutant.PM25: 10.7}, 28, AQIClassification.EXCELLENT),
+            ({Pollutant.PM25: 19.1, Pollutant.O3: 61.1}, 87, AQIClassification.GOOD),
+            ({Pollutant.PM25: 200.0}, 500, AQIClassification.VERY_LOW),
         ],
     )
     def test_classifications(self, readings, expected_aqi, expected_class):
@@ -170,11 +166,11 @@ class TestStationAirQuality:
 
     def test_reads_pollutant_aliases(self):
         result = calc_station_air_quality({"PM25": 10.7})
-        assert result.aqi_rounded == 72
+        assert result.aqi_rounded == 28
         assert result.worst_pollutant == Pollutant.PM25
 
     def test_accepts_string_input(self):
         """Backward compat: plain string keys still work."""
         result = calc_station_air_quality({"PM2.5": 10.7, "NO2": 49.3})
-        assert result.aqi_rounded == 54
-        assert result.classification == AQIClassification.GOOD
+        assert result.aqi_rounded == 46
+        assert result.classification == AQIClassification.EXCELLENT
