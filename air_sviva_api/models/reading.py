@@ -42,7 +42,7 @@ class RegionStationData(DataClassDictMixin):
 
 @dataclass
 class IndexDetail(DataClassDictMixin):
-    index_id: int = field(metadata={"alias": "indexId"})
+    index_id: Optional[int] = field(default=None, metadata={"alias": "indexId"})
     pollutant: Optional[str] = None
     index: Optional[float] = None
     value: Optional[float] = None
