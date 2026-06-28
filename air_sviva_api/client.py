@@ -9,15 +9,13 @@ from typing import Any, List, Optional, Tuple
 
 from aiohttp import ClientSession
 
-from air_sviva_api import aqi as aqi_mod
 from air_sviva_api import commons, data
-from air_sviva_api.aqi import AirQualityResult, calc_station_air_quality
 from air_sviva_api.const import HEADERS
 from air_sviva_api.models.average import AverageResponse
 from air_sviva_api.models.exceptions import SvivaAirError
 from air_sviva_api.models.lut import LookUpTable
 from air_sviva_api.models.pollutant import DataStatus, Pollutant, Unit
-from air_sviva_api.models.reading import RegionStationData, StationIndexResponse
+from air_sviva_api.models.reading import RegionStationData, StationIndexData, StationIndexResponse
 from air_sviva_api.models.region import Region
 from air_sviva_api.models.station_images import StationImagesResponse
 
@@ -262,61 +260,32 @@ class SvivaAirClient:
     async def get_station_aqi(
         self,
         station_id: int,
-    ) -> AirQualityResult:
-        """Calculate the Israeli AQI for a station using its average pollutant readings.
+    ) -> StationIndexData:
+        """Get the API-computed air quality index for a station.
 
-        Fetches hourly average data for the last 25 hours and aggregates each
-        pollutant according to its methodology-mandated averaging period:
-
-        - **24 hr** average — PM2.5, PM10
-        - **8 hr** average — O3
-        - Latest hourly value — NO2, SO2, CO, NOx
+        Fetches the latest index data from the API's native
+        ``/stations/index/latest`` endpoint — the same data shown
+        on the air.sviva.gov.il web dashboard.  The API handles
+        all methodology-mandated averaging periods internally
+        (8 hr for O₃, 24 hr for PM2.5/PM10, 1 hr for NO₂, etc.).
 
         Args:
             station_id: The station ID.
 
         Returns:
-            :class:`~air_sviva_api.aqi.AirQualityResult` with the computed
-            AQI, classification, and per-pollutant breakdown.
+            :class:`~air_sviva_api.models.reading.StationIndexData` with the
+            API-computed station-level ``index`` and per-pollutant ``indexes``.
 
         Raises:
-            SvivaAirError: If the station has no valid average data.
+            SvivaAirError: If the station is not found in the latest data.
         """
-        avg = await self.get_station_average(
-            station_id,
-            hours_back=25,
-            timebase=60,
-        )
-
-        if not avg.data:
-            raise SvivaAirError(-1, f"No average data for station {station_id}")
-
-        # Collect all valid hourly readings per pollutant
-        hourly: dict[str, list[float]] = {}
-        for dp in avg.data:
-            if not dp.channels:
-                continue
-            for ch in dp.channels:
-                if ch.valid and ch.name and ch.value is not None:
-                    hourly.setdefault(ch.name, []).append(ch.value)
-
-        if not hourly:
-            raise SvivaAirError(-1, f"No valid pollutant readings for station {station_id}")
-
-        readings: dict[str | aqi_mod.Pollutant, float] = {}
-        for name_orig, values in hourly.items():
-            canonical = aqi_mod.Pollutant.from_api(name_orig)
-            if canonical is None:
-                continue
-            if canonical in (aqi_mod.Pollutant.PM25, aqi_mod.Pollutant.PM10):
-                readings[canonical] = sum(values) / len(values)
-            elif canonical == aqi_mod.Pollutant.O3:
-                window = values[-8:]
-                readings[canonical] = sum(window) / len(window)
-            else:
-                readings[canonical] = values[-1]
-
-        return calc_station_air_quality(readings)
+        response = await self.get_stations_latest_index()
+        if not response.data:
+            raise SvivaAirError(-1, f"No index data for station {station_id}")
+        for sd in response.data:
+            if sd.station_id == station_id:
+                return sd
+        raise SvivaAirError(-1, f"Station {station_id} not found in latest index data")
 
     async def get_station_index_fast(
         self,
