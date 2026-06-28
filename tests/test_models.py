@@ -109,7 +109,7 @@ class TestReadingModel:
         idx = response.data[0]
         assert isinstance(idx, StationIndexData)
         assert idx.station_id == 82
-        assert idx.description == "טוב"
+        assert idx.description == "טובה"
 
     def test_station_index_response_defaults(self):
         response = StationIndexResponse.from_dict({})

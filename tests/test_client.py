@@ -5,11 +5,10 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from aiohttp import ClientSession
 
-from air_sviva_api.aqi import AirQualityResult
 from air_sviva_api.client import SvivaAirClient
 from air_sviva_api.const import GENERATE_TOKEN_URL, GET_API_TOKEN_URL
 from air_sviva_api.models.pollutant import Pollutant
-from air_sviva_api.models.reading import RegionStationData, StationIndexResponse
+from air_sviva_api.models.reading import RegionStationData, StationIndexData, StationIndexResponse
 from air_sviva_api.models.region import Region, Station
 from air_sviva_api.models.station_images import StationImage
 
@@ -158,33 +157,30 @@ class TestClientStations:
         assert result.images[0].name == "קרית גת.jpg"
 
     @patch("air_sviva_api.commons.send_get_request")
-    async def test_get_station_aqi(self, mock_get, client):
-        sample_data = {
-            "data": [
-                {
-                    "datetime": f"2024-01-15T{h:02d}:00:00",
-                    "channels": [
-                        {"id": 1, "name": "PM2.5", "value": 10.0, "status": 0, "valid": True},
-                        {"id": 5, "name": "O3", "value": 30.0, "valid": True},
-                        {"id": 2, "name": "NO2", "value": 40.0, "valid": True},
-                    ],
-                }
-                for h in range(24)
-            ],
-        }
-        mock_get.return_value = sample_data
+    async def test_get_station_aqi(self, mock_get, client, sample_station_index):
+        mock_get.return_value = sample_station_index
         result = await client.get_station_aqi(station_id=82)
-        assert isinstance(result, AirQualityResult)
-        assert result.aqi_rounded is not None
-        assert result.classification is not None
+        assert isinstance(result, StationIndexData)
+        assert result.station_id == 82
+        assert result.index is not None
+        assert result.indexes is not None
+        assert len(result.indexes) > 0
 
     @patch("air_sviva_api.commons.send_get_request")
     async def test_get_station_aqi_no_data(self, mock_get, client):
         mock_get.return_value = {"data": []}
         from air_sviva_api.models.exceptions import SvivaAirError
 
-        with pytest.raises(SvivaAirError, match="No average data"):
+        with pytest.raises(SvivaAirError, match="No index data"):
             await client.get_station_aqi(station_id=82)
+
+    @patch("air_sviva_api.commons.send_get_request")
+    async def test_get_station_aqi_not_found(self, mock_get, client, sample_station_index):
+        mock_get.return_value = sample_station_index
+        from air_sviva_api.models.exceptions import SvivaAirError
+
+        with pytest.raises(SvivaAirError, match="not found"):
+            await client.get_station_aqi(station_id=999)
 
 
 class TestClientReferenceData:
