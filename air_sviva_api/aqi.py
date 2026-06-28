@@ -11,7 +11,7 @@ Formula:
 
     The station AQI is determined by the worst (highest) sub-index::
 
-        AQI = 100 - max(I_p1, I_p2, ..., I_pn)
+        AQI = max(I_p1, I_p2, ..., I_pn)
 
 Usage::
 
@@ -164,10 +164,11 @@ AQI_BREAKPOINTS: dict[Pollutant, list[tuple[float, float, int, int]]] = {
 # ── Classification thresholds ─────────────────────────────────────────────
 
 _AQI_CLASSIFICATION: list[tuple[float, AQIClassification]] = [
+    (301, AQIClassification.VERY_LOW),
+    (201, AQIClassification.LOW),
+    (101, AQIClassification.MEDIUM),
     (51, AQIClassification.GOOD),
-    (0, AQIClassification.MEDIUM),
-    (-200, AQIClassification.LOW),
-    (float("-inf"), AQIClassification.VERY_LOW),
+    (0, AQIClassification.EXCELLENT),
 ]
 
 
@@ -179,7 +180,7 @@ class AirQualityResult:
     """Result of an Israeli AQI calculation.
 
     Attributes:
-        aqi: The final AQI value (100 to -400). Higher values mean cleaner air.
+        aqi: The final AQI value (0 to 500). Higher values mean more polluted air.
         classification: Verbal classification (:class:`AQIClassification`).
         sub_indices: Per-pollutant sub-indices (0-500) keyed by :class:`Pollutant`.
         worst_pollutant: The pollutant with the highest sub-index (``None`` if no data).
@@ -303,7 +304,7 @@ def calc_station_air_quality(readings: dict[str | Pollutant, float]) -> AirQuali
     worst_pollutant = max(sub_indices, key=sub_indices.__getitem__)  # type: ignore[arg-type]
     max_sub_index = sub_indices[worst_pollutant]
 
-    aqi = 100.0 - max_sub_index
+    aqi = max_sub_index
 
     classification: AQIClassification = AQIClassification.UNKNOWN
     for threshold, cls in _AQI_CLASSIFICATION:
